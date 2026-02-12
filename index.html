@@ -40,12 +40,13 @@
 
 <script>
   const supabaseUrl = "https://loxjcnkmvduujdlpwpex.supabase.co";
-  const supabaseKey = "sb_publishable_kG-IZeD9w2mxptjeF9QRwg_nwEhGwBt";
+  const supabaseKey = "ISI_PUBLISHABLE_KEY_KAMU";
 
-  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+  const { createClient } = supabase;
+  const client = createClient(supabaseUrl, supabaseKey);
 
   async function loadImages() {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from("photos")
       .select("*")
       .order("created_at", { ascending: false });
@@ -73,23 +74,22 @@
 
     const fileName = Date.now() + "_" + file.name;
 
-    const { data, error } = await supabase.storage
+    const { error: uploadError } = await client.storage
       .from("images")
       .upload(fileName, file);
 
-    if (error) {
+    if (uploadError) {
+      console.error(uploadError);
       alert("Upload gagal!");
       return;
     }
 
-    const { data: publicUrlData } = supabase.storage
+    const { data } = client.storage
       .from("images")
       .getPublicUrl(fileName);
 
-    const publicUrl = publicUrlData.publicUrl;
-
-    await supabase.from("photos").insert([
-      { image_url: publicUrl }
+    await client.from("photos").insert([
+      { image_url: data.publicUrl }
     ]);
 
     alert("Upload berhasil!");
@@ -98,6 +98,7 @@
 
   loadImages();
 </script>
+
 
 </body>
 </html>
