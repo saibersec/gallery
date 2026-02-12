@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Gallery</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      background: #f4f4f4;
+    }
+    h1 {
+      margin-top: 30px;
+    }
+    .upload-box {
+      margin: 20px;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+      padding: 20px;
+    }
+    .gallery img {
+      width: 100%;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>My Shared Gallery</h1>
+
+<div class="upload-box">
+  <input type="file" id="fileInput">
+  <button onclick="uploadImage()">Upload</button>
+</div>
+
+<div class="gallery" id="gallery"></div>
+
+<script>
+  const supabaseUrl = "https://loxjcnkmvduujdlpwpex.supabase.co";
+  const supabaseKey = "sb_publishable_kG-IZeD9w2mxptjeF9QRwg_nwEhGwBt";
+
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  async function loadImages() {
+    const { data, error } = await supabase
+      .from("photos")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    const gallery = document.getElementById("gallery");
+    gallery.innerHTML = "";
+
+    if (data) {
+      data.forEach(photo => {
+        const img = document.createElement("img");
+        img.src = photo.image_url;
+        gallery.appendChild(img);
+      });
+    }
+  }
+
+  async function uploadImage() {
+    const fileInput = document.getElementById("fileInput");
+    const file = fileInput.files[0];
+
+    if (!file) {
+      alert("Pilih file dulu!");
+      return;
+    }
+
+    const fileName = Date.now() + "_" + file.name;
+
+    const { data, error } = await supabase.storage
+      .from("images")
+      .upload(fileName, file);
+
+    if (error) {
+      alert("Upload gagal!");
+      return;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("images")
+      .getPublicUrl(fileName);
+
+    const publicUrl = publicUrlData.publicUrl;
+
+    await supabase.from("photos").insert([
+      { image_url: publicUrl }
+    ]);
+
+    alert("Upload berhasil!");
+    loadImages();
+  }
+
+  loadImages();
+</script>
+
+</body>
+</html>
